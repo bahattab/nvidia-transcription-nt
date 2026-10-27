@@ -1,6 +1,6 @@
 # 0 - NVidia transcription (NT)
 
-Version **1.0.0** · Triggers **nvidia**, **NT** · Python 3.10+
+Version **1.1.0** · Triggers **nvidia**, **NT** · Python 3.10+
 
 Portable Agent Skill and command-line client for NVIDIA Riva hosted streaming speech recognition. Any agent with Markdown reading, Python execution and network access can use it. Agents without execution can provide the commands but cannot claim transcription occurred. Automatic skill discovery depends on the host; read `SKILL.md` directly if discovery is unavailable.
 
@@ -30,11 +30,29 @@ The CLI uses a hidden key prompt in an interactive terminal. For unattended agen
 - Version 1 deliberately accepts only nonempty 16-bit mono PCM WAV. OGG/OPUS require explicit conversion using another installed tool; they are not implemented in this wrapper.
 - Required: `--input`, `--output`. The output parent must exist; existing files are never overwritten.
 - Optional: `--language` (default `en-US`), `--server` (default `grpc.nvcf.nvidia.com:443`), `--function-id` (default `71203149-d3b7-4460-8231-1be2543a1fca`), `--timeout` (positive seconds; default 300).
-- Only final recognition alternatives are written as UTF-8 text. No timestamps, diarization, translation, language autodetection, microphone capture or local inference are provided by this release.
+- Only final recognition alternatives are exported. Supported output formats: plain text, timestamped JSON, SRT, and WebVTT. Diarization, translation, language autodetection, microphone capture and local inference are not provided.
 - The default function ID comes from the supplied parakeet-1_1b-rnnt-multilingual-asr instructions. Availability and language support must be checked against NVIDIA's current offering; a language option does not establish model support.
 - TLS is enabled. Audio is streamed to the selected remote server. Output contains potentially private speech text.
-- Exit codes: 0 = request completed (may recognize no speech); 2 = input/setup/local file error; 3 = gRPC failure. Argument parsing also uses code 2.
+- Exit codes: 0 = request completed (may recognize no speech); 2 = input/setup/local file error; 3 = gRPC failure; 4 = missing, invalid or overlapping word timing. Argument parsing also uses code 2.
 - No automatic retries. A timeout/failure can occur after the provider has processed some audio; investigate before rerunning. Partial transcripts are not saved on failed requests.
+
+## Timestamps for video editing
+
+Choose an output suffix `.json`, `.srt` or `.vtt`; use `--format txt|json|srt|vtt` to override inference. Unknown suffixes retain the plain-text default. Each command makes one API request; running separate formats transcribes the audio again. Prefer JSON as the editing master and use its word data for local conversions when you need multiple formats without repeated API use.
+
+```powershell
+& ".venv\Scripts\python.exe" scripts/transcribe.py --input "speech.wav" --output "speech.json"
+```
+
+Replace the example interpreter with your installed environment Python. The same invocation with `speech.srt` or `speech.vtt` exports captions for compatible video editors. Existing output files are never overwritten.
+
+JSON schema version `1.0` contains `time_unit: milliseconds`, `time_origin: input_audio_start`, the requested `language`, the full final `text`, and `segments`. Each segment has `text`, `start_ms`, `end_ms` and a `words` array; each word has `text`, `start_ms`, `end_ms`. The JSON schema version is separate from the package version. Segment boundaries are the first/last provider word boundaries, not voice activity or silence boundaries. Text is retained as returned; caption word text may differ from the service's normalized or punctuated full transcript.
+
+SRT uses `HH:MM:SS,mmm`; VTT uses `HH:MM:SS.mmm` with a `WEBVTT` header. Captions split at final-result boundaries, eight words, a five-second target, or gaps of at least one second. Each cue starts/ends at actual provider word boundaries. A single long word can exceed the duration target. Markup characters are escaped. No line-width or broadcast readability standard is claimed.
+
+NVIDIA's [ASR protocol](https://github.com/nvidia-riva/common/blob/main/riva/proto/riva_asr.proto) defines word offsets as milliseconds relative to the beginning of the audio. Timed export enables `enable_word_time_offsets`; it ignores interim results and does not add elapsed processing time or previous segment durations to returned offsets. Missing word timing, nonpositive word duration, negative/backward/overlapping intervals stop export with code 4 and no file. Some models may not supply usable timing; endpoint support remains a live acceptance check. No speech produces empty segments/captions, not fabricated words.
+
+For video editing, extract audio without removing silence or changing speed. Times refer to the supplied audio beginning; add any source clip or timeline offset separately. They are ASR estimates, not frame numbers, SMPTE timecode, forced alignment, an EDL or automatic cut decisions. Check synchronization and word accuracy against the source before cutting. Timing quality on the hosted endpoint has not been verified in this release.
 
 ## Troubleshooting and validation
 

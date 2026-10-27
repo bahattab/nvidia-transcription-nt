@@ -1,4 +1,4 @@
 interface:
   display_name: "0 - NVidia transcription (NT)"
-  short_description: "Transcribe speech with NVIDIA Riva hosted ASR"
+  short_description: "Transcribe speech with word timing and SRT/VTT captions"
   default_prompt: "Use $0-nvidia-transcription-nt to transcribe the specified audio file."
