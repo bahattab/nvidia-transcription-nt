@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.wav
+*.ogg
+*.opus
+transcript*.txt
