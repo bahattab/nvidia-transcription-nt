@@ -18,7 +18,7 @@ def timed_segment(alternative, previous_end):
     words = []
     for info in alternative.words:
         start, end = int(info.start_time), int(info.end_time)
-        if start < previous_end or end <= start or not info.word.strip():
+        if start < previous_end or end < start or not info.word.strip():
             raise TimingError('Invalid or overlapping word offsets')
         words.append({'text': info.word, 'start_ms': start, 'end_ms': end})
         previous_end = end
@@ -32,7 +32,7 @@ def subtitle_cues(segments):
     cues, group = [], []
     for segment in segments:
         for word in segment['words']:
-            if group and (len(group) >= 8 or word['end_ms'] - group[0]['start_ms'] > 5000
+            if group and group[-1]['end_ms'] > group[0]['start_ms'] and (len(group) >= 8 or word['end_ms'] - group[0]['start_ms'] > 5000
                           or word['start_ms'] - group[-1]['end_ms'] >= 1000):
                 cues.append(group)
                 group = []
@@ -40,7 +40,22 @@ def subtitle_cues(segments):
         if group:
             cues.append(group)
             group = []
-    return cues
+    merged = []
+    pending = []
+    for cue in cues:
+        if pending:
+            cue = pending + cue
+            pending = []
+        if cue[-1]['end_ms'] == cue[0]['start_ms']:
+            if merged:
+                merged[-1].extend(cue)
+            else:
+                pending = cue
+        else:
+            merged.append(cue)
+    if pending:
+        raise TimingError('Cannot create a positive-duration subtitle cue from point timestamps alone')
+    return merged
 
 def timecode(ms, separator='.'):
     hours, remainder = divmod(ms, 3600000)
@@ -152,7 +167,11 @@ def main():
         print(f'NVIDIA request failed ({exc.code().name}); no automatic retry.', file=sys.stderr)
         return 3
     text = '\n'.join(pieces).strip()
-    content = render_output(fmt, text, segments, a.language)
+    try:
+        content = render_output(fmt, text, segments, a.language)
+    except TimingError:
+        print('Subtitle export failed: only point timestamps available; no positive-duration cue.', file=sys.stderr)
+        return 4
     with output.open('x', encoding='utf-8') as stream:
         stream.write(content)
     print(f'Transcript saved: {output}' if text else f'No speech recognized; output contains no speech: {output}')

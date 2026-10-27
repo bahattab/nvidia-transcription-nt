@@ -1,6 +1,6 @@
 # 0 - NVidia transcription (NT)
 
-Version **1.1.0** · Triggers **nvidia**, **NT** · Python 3.10+
+Version **1.1.1** · Triggers **nvidia**, **NT** · Python 3.10+
 
 Portable Agent Skill and command-line client for NVIDIA Riva hosted streaming speech recognition. Any agent with Markdown reading, Python execution and network access can use it. Agents without execution can provide the commands but cannot claim transcription occurred. Automatic skill discovery depends on the host; read `SKILL.md` directly if discovery is unavailable.
 
@@ -50,9 +50,11 @@ JSON schema version `1.0` contains `time_unit: milliseconds`, `time_origin: inpu
 
 SRT uses `HH:MM:SS,mmm`; VTT uses `HH:MM:SS.mmm` with a `WEBVTT` header. Captions split at final-result boundaries, eight words, a five-second target, or gaps of at least one second. Each cue starts/ends at actual provider word boundaries. A single long word can exceed the duration target. Markup characters are escaped. No line-width or broadcast readability standard is claimed.
 
-NVIDIA's [ASR protocol](https://github.com/nvidia-riva/common/blob/main/riva/proto/riva_asr.proto) defines word offsets as milliseconds relative to the beginning of the audio. Timed export enables `enable_word_time_offsets`; it ignores interim results and does not add elapsed processing time or previous segment durations to returned offsets. Missing word timing, nonpositive word duration, negative/backward/overlapping intervals stop export with code 4 and no file. Some models may not supply usable timing; endpoint support remains a live acceptance check. No speech produces empty segments/captions, not fabricated words.
+Some NVIDIA words have equal start and end offsets (point timestamps). Version 1.1.1 preserves these exactly in JSON. Subtitle grouping joins point-only groups to neighboring timed words, so a cue may exceed the normal grouping target. An entire subtitle composed of point timestamps at one instant cannot define a positive-duration cue and fails without inventing a duration.
 
-For video editing, extract audio without removing silence or changing speed. Times refer to the supplied audio beginning; add any source clip or timeline offset separately. They are ASR estimates, not frame numbers, SMPTE timecode, forced alignment, an EDL or automatic cut decisions. Check synchronization and word accuracy against the source before cutting. Timing quality on the hosted endpoint has not been verified in this release.
+NVIDIA's [ASR protocol](https://github.com/nvidia-riva/common/blob/main/riva/proto/riva_asr.proto) defines word offsets as milliseconds relative to the beginning of the audio. Timed export enables `enable_word_time_offsets`; it ignores interim results and does not add elapsed processing time or previous segment durations to returned offsets. Missing word timing, negative word duration, negative/backward/overlapping intervals stop export with code 4 and no file. Some models may not supply usable timing; endpoint support remains a live acceptance check. No speech produces empty segments/captions, not fabricated words.
+
+For video editing, extract audio without removing silence or changing speed. Times refer to the supplied audio beginning; add any source clip or timeline offset separately. They are ASR estimates, not frame numbers, SMPTE timecode, forced alignment, an EDL or automatic cut decisions. Check synchronization and word accuracy against the source before cutting. Live v1.1.1 verification on a 1,018-second recording produced 4,107 timed words and 518 SRT cues; FFprobe parsed the SRT successfully. This verifies service acceptance, output structure and ordered source-relative intervals, not perceptual synchronization, transcription accuracy or frame-level alignment. 2,609 words had point timestamps; these remain unchanged in JSON.
 
 ## Troubleshooting and validation
 

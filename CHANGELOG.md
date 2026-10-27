@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 — 2026-10-27
+
+- Fixed live NVIDIA word timestamps with equal start/end values being rejected. Preserve these point timestamps exactly in JSON.
+- Merge point-only caption groups with neighboring provider-timed cues; reject an all-point subtitle with no positive-duration cue instead of fabricating duration.
+- Added regression tests based on the timing shape observed during a live three-second request.
+- Verified full live transcription: 4,107 words, 518 SRT cues, ordered intervals within source duration and successful FFprobe subtitle parsing. Fifteen local tests passed; perceptual accuracy and frame-level alignment were not audited.
+
 ## 1.1.0 — 2026-10-27
 
 - Added JSON word/segment timestamps in source-relative milliseconds, plus SRT and WebVTT caption export.

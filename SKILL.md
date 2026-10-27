@@ -2,7 +2,7 @@
 name: 0-nvidia-transcription-nt
 description: 'Transcribe local speech audio with NVIDIA Riva: plain text, word timestamps in JSON, and SRT/VTT captions for video editing. Display name: 0 - NVidia transcription (NT). Trigger on nvidia or standalone NT for this skill or speech transcription; exclude unrelated hardware questions.'
 metadata:
-  version: 1.1.0
+  version: 1.1.1
 ---
 
 # 0 - NVidia transcription (NT)
@@ -33,7 +33,7 @@ Use the environment's `Scripts/python.exe` on Windows or `bin/python` on Linux/m
 ```
 
 4. For video editing, use `--output <transcript.json>` for millisecond word/segment offsets, or `.srt`/`.vtt` for importable captions. Format is inferred from these suffixes; `--format txt|json|srt|vtt` overrides it. `.txt` preserves the original plain-text behavior. Run once per desired format; each run sends audio again, so prefer JSON as an editing master and convert it locally if more formats are needed.
-5. Require exit code zero and an actual output file. Report empty recognition as no speech. Timed formats request real provider word offsets; missing, overlapping or invalid timing exits 4 without output or retry. Never invent timestamps. Offsets are relative to the beginning of the supplied audio, not an edited video timeline or wall clock. Preserve silence when extracting audio from video; apply clip/timeline offsets separately. Review recognition and timing before using them for cuts; these are ASR estimates, not frame-accurate edit decisions.
+5. Require exit code zero and an actual output file. Report empty recognition as no speech. Timed formats request real provider word offsets and preserve equal start/end point timestamps; missing, overlapping or invalid timing exits 4 without output or retry. Never invent timestamps. Offsets are relative to the beginning of the supplied audio, not an edited video timeline or wall clock. Preserve silence when extracting audio from video; apply clip/timeline offsets separately. Review recognition and timing before using them for cuts; these are ASR estimates, not frame-accurate edit decisions.
 6. JSON retains final recognition text and every timed word; SRT/VTT group provider words into short captions and can differ from normalized/punctuated transcript text. Summarization and translation are separate downstream steps; preserve the original transcript.
 
 Defaults: TLS `grpc.nvcf.nvidia.com:443`, function ID `71203149-d3b7-4460-8231-1be2543a1fca`, language `en-US`. Set `--language` for a supported language; do not infer universal multilingual or Arabic support. Endpoint/function availability is controlled by NVIDIA; the scripts allow explicit overrides. This is a client installation, not a local model/server installation.

@@ -120,7 +120,7 @@ class TranscriptionTests(unittest.TestCase):
                     f'1\n00:00:01{delimiter}250 --> 00:00:02{delimiter}100\nHello world.\n')
 
     def test_missing_and_invalid_timings_fail_without_output(self):
-        cases = [[], [('word', 0, 0)], [('word', -1, 10)],
+        cases = [[], [('word', 10, 0)], [('word', -1, 10)],
                  [('one', 100, 300), ('two', 200, 400)]]
         for words in cases:
             with self.subTest(words=words):
@@ -163,6 +163,23 @@ class TranscriptionTests(unittest.TestCase):
         rendered = nt.render_output('vtt', '', [segment], 'en-US')
         self.assertIn('&lt;b&gt; --&gt;', rendered)
         self.assertEqual(rendered.count('-->'), 1)
+
+    def test_provider_point_timestamps_preserved_without_invented_duration(self):
+        self.output = self.root / 'points.json'
+        words = [('Hello', 0, 240), ('a', 880, 880), ('world', 1000, 1200)]
+        self.assertEqual(self.run_cli(self.timed_service([self.result(words=words)])), 0)
+        data = json.loads(self.output.read_text())
+        self.assertEqual(data['segments'][0]['words'][1], {'text':'a', 'start_ms':880, 'end_ms':880})
+        cues = nt.subtitle_cues(data['segments'])
+        self.assertEqual(cues[0][-1]['end_ms'], 1200)
+
+    def test_point_only_cue_merges_or_fails_without_guessing(self):
+        a = nt.timed_segment(self.result(words=[('a',0,100)]).alternatives[0],0)
+        b = nt.timed_segment(self.result(words=[('b',200,200)]).alternatives[0],100)
+        self.assertEqual(len(nt.subtitle_cues([a,b])),1)
+        self.assertEqual(nt.subtitle_cues([a,b])[0][-1]['end_ms'],200)
+        with self.assertRaises(nt.TimingError):
+            nt.subtitle_cues([b])
 
 if __name__ == '__main__':
     unittest.main()
